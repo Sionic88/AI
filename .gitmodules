@@ -1,0 +1,3 @@
+[submodule "building-data-genome-project-2-official"]
+	path = building-data-genome-project-2-official
+	url = https://github.com/buds-lab/building-data-genome-project-2.git

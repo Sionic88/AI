@@ -7,7 +7,7 @@ Laster målerdata for valgt site eller bygg og lager boksplott og en
 statistikktabell. Skriptet vasker ikke dataene; det gjøres et annet sted.
 
 Bruk:
-    python robin_boxplots.py                              # hele site Robin
+    python robin_boxplots.py                              # spør "Skriv inn site"
     python robin_boxplots.py --site Panther               # annen site
     python robin_boxplots.py --bygg Robin_education_Kiera # ett bygg
     python robin_boxplots.py --bygg Kiera                 # kortform, --site legges foran
@@ -250,8 +250,8 @@ def fig_raw_vs_log(elec, filnavn):
 def parse_args():
     ap = argparse.ArgumentParser(
         description="Boksplott for en BDG2-site eller ett bygg.")
-    ap.add_argument("--site", default=SITE,
-                    help=f"site_id (standard: {SITE})")
+    ap.add_argument("--site",
+                    help="site_id. Utelates den, spør skriptet ved oppstart.")
     ap.add_argument("--bygg",
                     help="building_id, f.eks. Robin_education_Kiera. Kortform "
                          "uten site-prefiks (Kiera) slås opp på --site.")
@@ -260,6 +260,34 @@ def parse_args():
     ap.add_argument("--ut", type=Path, default=OUT_ROOT,
                     help=f"rotmappe for figurer (standard: {OUT_ROOT})")
     return ap.parse_args()
+
+
+def velg_site(sites, forslag=None):
+    """Spør etter site til et gyldig navn er skrevet inn.
+
+    Godtar navnet (uavhengig av store og små bokstaver), nummeret i listen,
+    eller tom linje for standard. Er forslag (fra --site) gyldig, brukes det
+    uten å spørre.
+    """
+    oppslag = {s.lower(): s for s in sites}
+    if forslag:
+        if forslag.strip().lower() in oppslag:
+            return oppslag[forslag.strip().lower()]
+        print(f"Ukjent site '{forslag}'.")
+
+    print("Tilgjengelige sites:")
+    for i, s in enumerate(sites, start=1):
+        print(f"  {i:2d}. {s}")
+    while True:
+        svar = input(f"\nSkriv inn site (navn eller nummer, Enter = {SITE}): ")
+        svar = svar.strip()
+        if not svar:
+            return SITE
+        if svar.isdigit() and 1 <= int(svar) <= len(sites):
+            return sites[int(svar) - 1]
+        if svar.lower() in oppslag:
+            return oppslag[svar.lower()]
+        print(f"Fant ikke '{svar}'. Prøv igjen.")
 
 
 def konfigurer(args):
@@ -287,6 +315,12 @@ def konfigurer(args):
 
 def main():
     args = parse_args()
+    # Fullt building_id gir siten selv; ellers velges site (spør om nødvendig)
+    if not (args.bygg and "_" in args.bygg):
+        md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv",
+                         usecols=["site_id"])
+        args.site = velg_site(sorted(md["site_id"].dropna().unique()),
+                              args.site)
     if args.liste:
         md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv")
         md = md[md["site_id"] == args.site]

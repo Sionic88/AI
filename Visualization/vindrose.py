@@ -1,19 +1,21 @@
 """
-Vindrose for site "Robin" (University College London) i BDG2.
+Vindrose for en valgfri site i BDG2.
 
 Lager polare stablede søylediagram som viser hvor vinden kommer fra
 (16 sektorer) og hvor sterk den er (fargelagte fartsintervaller).
 
 Bruk:
-    python vindrose.py
+    python vindrose.py           # spør "Skriv inn site" ved oppstart
+    python vindrose.py Panther   # site direkte som argument
 
-Figurer havner i .\\figures\\:
+Figurer havner i .\\figures\\<site>\\:
     12_vindrose_hele_perioden.png
     13_vindrose_per_aar.png
     14_vindrose_per_sesong.png
-Tabell: figures\\vindrose_tabell.csv
+Tabell: figures\\<site>\\vindrose_tabell.csv
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -24,9 +26,9 @@ import pandas as pd
 
 DATA_DIR = (Path(__file__).resolve().parent.parent
             / "building-data-genome-project-2-official" / "data")
-SITE = "Robin"
-OUT_DIR = Path("figures").resolve()
-OUT_DIR.mkdir(exist_ok=True)
+SITE = "Robin"                     # standard når du bare trykker Enter
+OUT_ROOT = Path("figures").resolve()
+OUT_DIR = OUT_ROOT / SITE          # settes på nytt når site er valgt
 
 N_SEKTORER = 16                               # 16 x 22.5 grader
 FART_KANTER = [0, 2, 4, 6, 8, 10, np.inf]     # m/s
@@ -49,11 +51,39 @@ def lagre(fig, navn):
 
 
 def last_vaer():
-    w = pd.read_csv(DATA_DIR / "weather" / "weather.csv",
-                    parse_dates=["timestamp"])
-    w = w[w["site_id"] == SITE].copy()
-    w = w.set_index("timestamp").sort_index()
-    return w[["windDirection", "windSpeed"]]
+    """Vinddata for alle sites i datasettet."""
+    return pd.read_csv(DATA_DIR / "weather" / "weather.csv",
+                       usecols=["timestamp", "site_id",
+                                "windDirection", "windSpeed"],
+                       parse_dates=["timestamp"])
+
+
+def velg_site(sites):
+    """Spør etter site til et gyldig navn er skrevet inn.
+
+    Godtar navnet (uavhengig av store og små bokstaver), nummeret i listen,
+    eller tom linje for standard. Navnet kan også gis som argument.
+    """
+    oppslag = {s.lower(): s for s in sites}
+    if len(sys.argv) > 1:
+        svar = sys.argv[1].strip()
+        if svar.lower() in oppslag:
+            return oppslag[svar.lower()]
+        print(f"Ukjent site '{svar}'.")
+
+    print("Tilgjengelige sites:")
+    for i, s in enumerate(sites, start=1):
+        print(f"  {i:2d}. {s}")
+    while True:
+        svar = input(f"\nSkriv inn site (navn eller nummer, Enter = {SITE}): ")
+        svar = svar.strip()
+        if not svar:
+            return SITE
+        if svar.isdigit() and 1 <= int(svar) <= len(sites):
+            return sites[int(svar) - 1]
+        if svar.lower() in oppslag:
+            return oppslag[svar.lower()]
+        print(f"Fant ikke '{svar}'. Prøv igjen.")
 
 
 def skill_ut_stille(w):
@@ -135,7 +165,8 @@ def figur_enkel(w, andel_stille):
 
     fig = plt.figure(figsize=(7.5, 6.5))
     ax = fig.add_subplot(111, projection="polar")
-    tegn_rose(ax, tab, f"{SITE}: vindrose 2016-2017\n"
+    periode = f"{w.index.min().year}-{w.index.max().year}"
+    tegn_rose(ax, tab, f"{SITE}: vindrose {periode}\n"
                        f"(retningen vinden kommer fra, "
                        f"{andel_stille:.1f} % stille timer utelatt)")
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1.05), frameon=False,
@@ -168,9 +199,20 @@ def figur_panel(w, grupper, filnavn, tittel_mal):
 
 
 def main():
-    print(f"{SITE}: vindrose\n")
-    w = last_vaer()
+    global SITE, OUT_DIR
+    alle = last_vaer()
+    SITE = velg_site(sorted(alle["site_id"].dropna().unique()))
+    OUT_DIR = OUT_ROOT / SITE
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n{SITE}: vindrose\n")
+    w = (alle[alle["site_id"] == SITE]
+         .set_index("timestamp").sort_index()
+         [["windDirection", "windSpeed"]])
     w, andel_stille = skill_ut_stille(w)
+    if len(w) < 50:
+        print(f"\n{SITE} har for lite vinddata til å lage vindrose.")
+        return
 
     figur_enkel(w, andel_stille)
 

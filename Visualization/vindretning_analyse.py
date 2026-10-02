@@ -1,5 +1,5 @@
 """
-Retningsavhengig vindfølsomhet per bygg, site "Robin" (UCL) i BDG2.
+Retningsavhengig vindfølsomhet per bygg, for en valgfri site i BDG2.
 
 Ideen: fjern først alt forbruk som kan forklares av temperatur, vindstyrke,
 tid på døgnet, ukedag og måned. Det som blir igjen (residualet) grupperes
@@ -12,11 +12,13 @@ kaldere luft. Skriptet rapporterer derfor BÅDE rå sektoreffekt og avvik fra
 porteføljens gjennomsnitt. Det siste er det som peker på enkeltbygg.
 
 Bruk:
-    python vindretning_analyse.py
+    python vindretning_analyse.py           # spør "Skriv inn site" ved oppstart
+    python vindretning_analyse.py Panther   # site direkte som argument
 
-Krever kun numpy, pandas og matplotlib.
+Figurer havner i .\\figures\\<site>\\. Krever kun numpy, pandas og matplotlib.
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -27,9 +29,9 @@ import pandas as pd
 
 DATA_DIR = (Path(__file__).resolve().parent.parent
             / "building-data-genome-project-2-official" / "data")
-SITE = "Robin"
-OUT_DIR = Path("figures").resolve()
-OUT_DIR.mkdir(exist_ok=True)
+SITE = "Robin"                     # standard når du bare trykker Enter
+OUT_ROOT = Path("figures").resolve()
+OUT_DIR = OUT_ROOT / SITE          # settes på nytt når site er valgt
 
 N_SEKTORER = 8                 # 8 x 45 grader gir nok dager per sektor
 BASISTEMP_VARME = 15.5         # °C, grensetemperatur for oppvarmingsbehov
@@ -59,10 +61,39 @@ def lagre(fig, navn):
 # Data
 # ----------------------------------------------------------------------
 def last_vaer():
-    w = pd.read_csv(DATA_DIR / "weather" / "weather.csv",
-                    parse_dates=["timestamp"])
-    w = w[w["site_id"] == SITE].set_index("timestamp").sort_index()
-    return w[["airTemperature", "windSpeed", "windDirection"]]
+    """Værdata for alle sites i datasettet."""
+    return pd.read_csv(DATA_DIR / "weather" / "weather.csv",
+                       usecols=["timestamp", "site_id", "airTemperature",
+                                "windSpeed", "windDirection"],
+                       parse_dates=["timestamp"])
+
+
+def velg_site(sites):
+    """Spør etter site til et gyldig navn er skrevet inn.
+
+    Godtar navnet (uavhengig av store og små bokstaver), nummeret i listen,
+    eller tom linje for standard. Navnet kan også gis som argument.
+    """
+    oppslag = {s.lower(): s for s in sites}
+    if len(sys.argv) > 1:
+        svar = sys.argv[1].strip()
+        if svar.lower() in oppslag:
+            return oppslag[svar.lower()]
+        print(f"Ukjent site '{svar}'.")
+
+    print("Tilgjengelige sites:")
+    for i, s in enumerate(sites, start=1):
+        print(f"  {i:2d}. {s}")
+    while True:
+        svar = input(f"\nSkriv inn site (navn eller nummer, Enter = {SITE}): ")
+        svar = svar.strip()
+        if not svar:
+            return SITE
+        if svar.isdigit() and 1 <= int(svar) <= len(sites):
+            return sites[int(svar) - 1]
+        if svar.lower() in oppslag:
+            return oppslag[svar.lower()]
+        print(f"Fant ikke '{svar}'. Prøv igjen.")
 
 
 def last_elektrisitet():
@@ -259,11 +290,22 @@ def fig_rangering(ut, topp=20):
 # Hovedløp
 # ----------------------------------------------------------------------
 def main():
-    print(f"{SITE}: retningsavhengig vindfølsomhet\n")
-    w = last_vaer()
+    global SITE, OUT_DIR
+    alle = last_vaer()
+    SITE = velg_site(sorted(alle["site_id"].dropna().unique()))
+    OUT_DIR = OUT_ROOT / SITE
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n{SITE}: retningsavhengig vindfølsomhet\n")
+    w = (alle[alle["site_id"] == SITE]
+         .set_index("timestamp").sort_index()
+         [["airTemperature", "windSpeed", "windDirection"]])
     e = last_elektrisitet()
     meta = last_metadata()
     print(f"  {e.shape[1]} bygg med elektrisitetsmåler")
+    if e.empty:
+        print(f"\n{SITE} har ingen elektrisitetsmålere, analysen avbrytes.")
+        return
 
     dogn = dognretning(w)
     if KUN_FYRINGSSESONG:
@@ -290,7 +332,15 @@ def main():
                 else np.nan
         sektor_tab[bygg] = rad
 
-    tab = pd.DataFrame(sektor_tab).T
+    # bygg uten noen sektor med nok døgn kan ikke rangeres
+    tab = pd.DataFrame(sektor_tab, index=SEKTORNAVN_8).T.dropna(how="all")
+    if tab.empty:
+        print(f"\nIngen bygg på {SITE} har nok data: krever minst "
+              f"{MIN_TIMER_PER_BYGG} timer i modellen og "
+              f"{MIN_DAGER_PER_SEKTOR} døgn i minst én vindsektor"
+              f"{' i fyringssesongen' if KUN_FYRINGSSESONG else ''}.")
+        print("Analysen avbrytes.")
+        return
     n_dager = dogn["sektor"].value_counts().reindex(range(N_SEKTORER),
                                                     fill_value=0)
     n_dager.index = SEKTORNAVN_8

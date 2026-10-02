@@ -2,6 +2,7 @@
 Skriver ut alt datasettet inneholder om ett enkelt bygg.
 
 Bruk:
+    python bygg_info.py              # spør "Skriv inn bygg" ved oppstart
     python bygg_info.py Lashandra
     python bygg_info.py Robin_Education_Lashandra
 
@@ -20,16 +21,19 @@ METER_TYPES = ["electricity", "hotwater", "chilledwater", "steam",
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Oppgi et byggnavn, f.eks: python bygg_info.py Lashandra")
-        return
-    sok = sys.argv[1].lower()
+    if len(sys.argv) > 1:
+        navn = sys.argv[1]
+    else:
+        navn = input("Skriv inn bygg (f.eks. Lashandra): ").strip()
+        if not navn:
+            return
+    sok = navn.lower()
 
     md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv")
     treff = md[md["building_id"].str.lower().str.contains(sok, na=False)]
 
     if treff.empty:
-        print(f"Fant ingen bygg som matcher '{sys.argv[1]}'.")
+        print(f"Fant ingen bygg som matcher '{navn}'.")
         like = md[md["building_id"].str.lower().str.contains(
             sok[:5], na=False)]["building_id"].head(10).tolist()
         if like:

@@ -1,13 +1,17 @@
 """
-Profilering av værdata for site "Robin" i Building Data Genome Project 2.
+Profilering av værdata for en valgfri site i Building Data Genome Project 2.
 
 Skriver ut hvilke variabler som finnes, dekningsgrad, statistikk og
 korrelasjon mot elektrisitetsforbruk. Lager to figurer.
 
 Bruk:
-    python vaer_profil.py
+    python vaer_profil.py           # spør "Skriv inn site" ved oppstart
+    python vaer_profil.py Panther   # site direkte som argument
+
+Figurer og tabeller havner i .\\figures\\<site>\\.
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -17,9 +21,9 @@ import pandas as pd
 
 DATA_DIR = (Path(__file__).resolve().parent.parent
             / "building-data-genome-project-2-official" / "data")
-SITE = "Robin"
-OUT_DIR = Path("figures").resolve()
-OUT_DIR.mkdir(exist_ok=True)
+SITE = "Robin"                     # standard når du bare trykker Enter
+OUT_ROOT = Path("figures").resolve()
+OUT_DIR = OUT_ROOT / SITE          # settes på nytt når site er valgt
 
 
 def lagre(fig, navn):
@@ -38,11 +42,37 @@ plt.rcParams.update({"figure.dpi": 130, "font.size": 9,
 
 
 def last_vaer():
-    w = pd.read_csv(DATA_DIR / "weather" / "weather.csv",
-                    parse_dates=["timestamp"])
-    w = w[w["site_id"] == SITE].copy()
-    w = w.set_index("timestamp").sort_index()
-    return w.drop(columns=["site_id"])
+    """Værdata for alle sites i datasettet."""
+    return pd.read_csv(DATA_DIR / "weather" / "weather.csv",
+                       parse_dates=["timestamp"])
+
+
+def velg_site(sites):
+    """Spør etter site til et gyldig navn er skrevet inn.
+
+    Godtar navnet (uavhengig av store og små bokstaver), nummeret i listen,
+    eller tom linje for standard. Navnet kan også gis som argument.
+    """
+    oppslag = {s.lower(): s for s in sites}
+    if len(sys.argv) > 1:
+        svar = sys.argv[1].strip()
+        if svar.lower() in oppslag:
+            return oppslag[svar.lower()]
+        print(f"Ukjent site '{svar}'.")
+
+    print("Tilgjengelige sites:")
+    for i, s in enumerate(sites, start=1):
+        print(f"  {i:2d}. {s}")
+    while True:
+        svar = input(f"\nSkriv inn site (navn eller nummer, Enter = {SITE}): ")
+        svar = svar.strip()
+        if not svar:
+            return SITE
+        if svar.isdigit() and 1 <= int(svar) <= len(sites):
+            return sites[int(svar) - 1]
+        if svar.lower() in oppslag:
+            return oppslag[svar.lower()]
+        print(f"Fant ikke '{svar}'. Prøv igjen.")
 
 
 def spearman(a, b):
@@ -58,8 +88,16 @@ def last_elektrisitet():
 
 
 def main():
-    w = last_vaer()
-    print(f"{SITE}: {len(w):,} timesrader, "
+    global SITE, OUT_DIR
+    alle = last_vaer()
+    SITE = velg_site(sorted(alle["site_id"].dropna().unique()))
+    OUT_DIR = OUT_ROOT / SITE
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    w = (alle[alle["site_id"] == SITE]
+         .set_index("timestamp").sort_index()
+         .drop(columns=["site_id"]))
+    print(f"\n{SITE}: {len(w):,} timesrader, "
           f"{w.index.min()} til {w.index.max()}\n")
 
     profil = pd.DataFrame({
@@ -119,11 +157,14 @@ def korrelasjon(w):
     for c in e.columns:
         x = e.loc[felles, c]
         m = x.notna() & temp.notna()
-        if m.sum() > 1000:
+        if m.sum() > 1000 and x[m].nunique() > 1:   # konstant måler gir ingen korrelasjon
             rho[c] = spearman(x[m], temp[m])
-    rho = pd.Series(rho).sort_values()
+    rho = pd.Series(rho, dtype=float).sort_values()
     print("\nSpearman-korrelasjon mellom forbruk og lufttemperatur:")
     print(f"  antall bygg: {len(rho)}")
+    if rho.empty:
+        print("  ingen bygg med nok overlappende data")
+        return
     print(f"  median:      {rho.median(): .3f}")
     print(f"  laveste:     {rho.min(): .3f}  ({rho.idxmin()})")
     print(f"  høyeste:     {rho.max(): .3f}  ({rho.idxmax()})")

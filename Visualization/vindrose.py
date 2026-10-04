@@ -24,8 +24,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-DATA_DIR = (Path(__file__).resolve().parent.parent
-            / "building-data-genome-project-2-official" / "data")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Pandas_data import weather
+
 SITE = "Robin"                     # standard når du bare trykker Enter
 OUT_ROOT = Path("figures").resolve()
 OUT_DIR = OUT_ROOT / SITE          # settes på nytt når site er valgt
@@ -52,10 +53,7 @@ def lagre(fig, navn):
 
 def last_vaer():
     """Vinddata for alle sites i datasettet."""
-    return pd.read_csv(DATA_DIR / "weather" / "weather.csv",
-                       usecols=["timestamp", "site_id",
-                                "windDirection", "windSpeed"],
-                       parse_dates=["timestamp"])
+    return weather[["timestamp", "site_id", "windDirection", "windSpeed"]]
 
 
 def velg_site(sites):

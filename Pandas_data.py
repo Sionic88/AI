@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 
 
@@ -7,15 +9,20 @@ import pandas as pd
 # The variables ending in "_raw" represent the original source data.
 # These should not be modified directly. Cleaned working copies are
 # created later in the script.
+#
+# DATA_DIR is found relative to this file, so the data loads no matter
+# which folder the importing script is run from.
 #endregion
 
-metadata_raw = pd.read_csv(
-    "building-data-genome-project-2-official/data/metadata/metadata.csv"
-)
+DATA_DIR = (Path(__file__).resolve().parent
+            / "building-data-genome-project-2-official" / "data")
 
-weather_raw = pd.read_csv(
-    "building-data-genome-project-2-official/data/weather/weather.csv"
-)
+METER_TYPES = ["electricity", "hotwater", "chilledwater", "steam",
+               "gas", "water", "irrigation", "solar"]
+
+metadata_raw = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv")
+
+weather_raw = pd.read_csv(DATA_DIR / "weather" / "weather.csv")
 
 
 #region COLUMN SELECTION EXPLANATION
@@ -109,6 +116,32 @@ metadata_with_weather = metadata.join(
 )
 
 
+#region METER DATA EXPLANATION
+# The meter files are large (one column per building, one row per hour),
+# so they are not loaded on import. load_meter() reads one file when it
+# is needed, optionally only the columns for one site or some buildings.
+#endregion
+
+def load_meter(meter_type, site=None, buildings=None):
+    """Raw hourly readings for one meter type, timestamp as index.
+
+    site       keep only buildings on this site (e.g. "Robin")
+    buildings  keep only these building_ids
+
+    Returns None if the meter file does not exist.
+    """
+    path = DATA_DIR / "meters" / "raw" / f"{meter_type}.csv"
+    if not path.exists():
+        return None
+    columns = pd.read_csv(path, nrows=0).columns.drop("timestamp")
+    if site is not None:
+        columns = [c for c in columns if c.startswith(site + "_")]
+    if buildings is not None:
+        columns = [c for c in columns if c in set(buildings)]
+    return pd.read_csv(path, usecols=["timestamp", *columns],
+                       parse_dates=["timestamp"], index_col="timestamp")
+
+
 #region HOW TO IMPORT THE PREPARED DATA
 #
 # Example:
@@ -138,6 +171,9 @@ metadata_with_weather = metadata.join(
 # metadata_with_weather
 #     Building metadata combined with average site temperature.
 #     This is currently the main prepared dataset for Task 1.
+#
+# load_meter("electricity", site="Robin")
+#     Raw hourly meter data, read from file when called.
 #
 # Important:
 # Importing Pandas_data.py will run the data preparation in this file,

@@ -19,8 +19,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-DATA_DIR = (Path(__file__).resolve().parent.parent
-            / "building-data-genome-project-2-official" / "data")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Pandas_data import load_meter, weather
+
 SITE = "Robin"                     # standard når du bare trykker Enter
 OUT_ROOT = Path("figures").resolve()
 OUT_DIR = OUT_ROOT / SITE          # settes på nytt når site er valgt
@@ -43,8 +44,7 @@ plt.rcParams.update({"figure.dpi": 130, "font.size": 9,
 
 def last_vaer():
     """Værdata for alle sites i datasettet."""
-    return pd.read_csv(DATA_DIR / "weather" / "weather.csv",
-                       parse_dates=["timestamp"])
+    return weather
 
 
 def velg_site(sites):
@@ -81,10 +81,7 @@ def spearman(a, b):
 
 
 def last_elektrisitet():
-    e = pd.read_csv(DATA_DIR / "meters" / "raw" / "electricity.csv",
-                    parse_dates=["timestamp"], index_col="timestamp")
-    cols = [c for c in e.columns if c.startswith(SITE + "_")]
-    return e[cols]
+    return load_meter("electricity", site=SITE)
 
 
 def main():

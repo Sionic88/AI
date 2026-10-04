@@ -14,10 +14,8 @@ from pathlib import Path
 
 import pandas as pd
 
-DATA_DIR = (Path(__file__).resolve().parent.parent
-            / "building-data-genome-project-2-official" / "data")
-METER_TYPES = ["electricity", "hotwater", "chilledwater", "steam",
-               "gas", "water", "irrigation", "solar"]
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Pandas_data import METER_TYPES, load_meter, metadata_raw
 
 
 def main():
@@ -29,7 +27,7 @@ def main():
             return
     sok = navn.lower()
 
-    md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv")
+    md = metadata_raw     # alle felt og alle bygg, også de uten areal
     treff = md[md["building_id"].str.lower().str.contains(sok, na=False)]
 
     if treff.empty:
@@ -61,16 +59,11 @@ def main():
         print("\nMålerdata (rå):")
         funnet = False
         for m in METER_TYPES:
-            sti = DATA_DIR / "meters" / "raw" / f"{m}.csv"
-            if not sti.exists():
-                continue
-            kols = pd.read_csv(sti, nrows=0).columns
-            if bygg not in kols:
+            df = load_meter(m, buildings=[bygg])
+            if df is None or bygg not in df.columns:
                 continue
             funnet = True
-            s = pd.read_csv(sti, usecols=["timestamp", bygg],
-                            parse_dates=["timestamp"],
-                            index_col="timestamp")[bygg]
+            s = df[bygg]
             g = s.dropna()
             print(f"\n  {m}")
             print(f"    dekning      {100 * len(g) / len(s):6.2f} %"

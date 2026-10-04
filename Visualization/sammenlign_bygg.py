@@ -19,6 +19,7 @@ Bruk:
 Figurer havner i .\\figures\\sammenligning\\.
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -27,8 +28,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-DATA_DIR = (Path(__file__).resolve().parent.parent
-            / "building-data-genome-project-2-official" / "data")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Pandas_data import load_meter, metadata, weather
+
 OUT_DIR = Path("figures").resolve() / "sammenligning"
 
 # Rekkefølge fra kaldest til varmest. Fargen følger bygget i alle figurer.
@@ -81,23 +83,17 @@ def navn(b):
 # Innlasting
 # ----------------------------------------------------------------------
 def last_metadata():
-    md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv")
-    return md.set_index("building_id").loc[list(BYGG)]
+    return metadata.loc[list(BYGG)]
 
 
 def last_maler(meter):
     """Kolonnene for de valgte byggene i en målerfil (tom tabell om ingen)."""
-    e = pd.read_csv(DATA_DIR / "meters" / "raw" / f"{meter}.csv",
-                    parse_dates=["timestamp"], index_col="timestamp")
-    return e[[b for b in BYGG if b in e.columns]]
+    return load_meter(meter, buildings=BYGG)
 
 
 def last_temperatur(meta):
     """Utetemperatur per bygg, hentet fra byggets site."""
-    w = pd.read_csv(DATA_DIR / "weather" / "weather.csv",
-                    usecols=["timestamp", "site_id", "airTemperature"],
-                    parse_dates=["timestamp"])
-    t = w.pivot_table(index="timestamp", columns="site_id",
+    t = weather.pivot_table(index="timestamp", columns="site_id",
                       values="airTemperature")
     return pd.DataFrame({b: t[meta.loc[b, "site_id"]] for b in BYGG})
 

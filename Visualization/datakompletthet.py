@@ -21,6 +21,7 @@ Bruk:
 Figur og tabeller havner i .\\figures\\datakompletthet\\.
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -29,8 +30,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-DATA_DIR = (Path(__file__).resolve().parent.parent
-            / "building-data-genome-project-2-official" / "data")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Pandas_data import METER_TYPES, load_meter, metadata_raw
+
 OUT_DIR = Path("figures").resolve() / "datakompletthet"
 
 FORSTE_FELT = "yearbuilt"
@@ -43,8 +45,6 @@ METADATA_FELT = ["yearbuilt", "sqm", "primaryspaceusage", "sub_primaryspaceusage
 # Tatt ut fordi de er lite relevante og nesten bare fylt ut for britiske bygg,
 # slik at trakten ellers bare sitter igjen med bygg fra Storbritannia:
 #   "industry", "subindustry", "rating"
-METER_TYPES = ["electricity", "hotwater", "chilledwater", "steam",
-               "gas", "water", "irrigation", "solar"]
 
 FARGE_DATA = "#2a78d6"
 FARGE_MANGLER = "#e4e3dc"
@@ -77,15 +77,15 @@ def lagre(fig, navn):
 # ----------------------------------------------------------------------
 def tilstede_tabell():
     """Bygg x felt, True der bygget har data i feltet."""
-    md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv",
-                     index_col="building_id")
+    # rå metadata: analysen handler nettopp om hvilke felt som mangler
+    md = metadata_raw.set_index("building_id")
     tab = md[METADATA_FELT].notna()
 
     for m in METER_TYPES:
-        sti = DATA_DIR / "meters" / "raw" / f"{m}.csv"
-        if not sti.exists():
+        df = load_meter(m)
+        if df is None:
             continue
-        dekning = pd.read_csv(sti, index_col="timestamp").notna().mean()
+        dekning = df.notna().mean()
         tab[m] = (dekning.reindex(tab.index).fillna(0) >= MIN_DEKNING)
         print(f"  {m:13s} {int(tab[m].sum()):5d} bygg med minst "
               f"{MIN_DEKNING:.0%} dekning")

@@ -18,6 +18,7 @@ konsollen og til statistikk.csv i samme mappe.
 """
 
 import argparse
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -26,18 +27,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Pandas_data import METER_TYPES, load_meter, metadata
+
 # ----------------------------------------------------------------------
 # Konfigurasjon
 # ----------------------------------------------------------------------
-DATA_DIR = (Path(__file__).resolve().parent.parent
-            / "building-data-genome-project-2-official" / "data")
 SITE = "Robin"              # standard site, kan overstyres med --site
 BYGG = None                 # building_id når ett enkelt bygg analyseres
 NAVN = SITE                 # brukes i titler og mappenavn
 OUT_ROOT = Path("figures")
 OUT_DIR = OUT_ROOT / NAVN
-METER_TYPES = ["electricity", "hotwater", "chilledwater", "steam",
-               "gas", "water", "irrigation", "solar"]
 
 plt.rcParams.update({"figure.dpi": 130, "font.size": 9,
                      "axes.grid": True, "grid.alpha": 0.3})
@@ -47,25 +47,21 @@ plt.rcParams.update({"figure.dpi": 130, "font.size": 9,
 # Innlasting
 # ----------------------------------------------------------------------
 def load_metadata():
-    md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv")
+    md = metadata.reset_index()
     if BYGG:
         return md[md["building_id"] == BYGG].copy()
     return md[md["site_id"] == SITE].copy()
 
 
-def load_meter(meter_type):
+def last_maler(meter_type):
     """Leser en målerfil, returnerer kolonnene for valgt site eller bygg."""
-    path = DATA_DIR / "meters" / "raw" / f"{meter_type}.csv"
-    if not path.exists():
-        return None
-    df = pd.read_csv(path, parse_dates=["timestamp"], index_col="timestamp")
     if BYGG:
-        cols = [c for c in df.columns if c == BYGG]
+        df = load_meter(meter_type, buildings=[BYGG])
     else:
-        cols = [c for c in df.columns if c.startswith(SITE + "_")]
-    if not cols:
+        df = load_meter(meter_type, site=SITE)
+    if df is None or df.empty:
         return None
-    return df[cols]
+    return df
 
 
 def to_long(df, meter_type):
@@ -298,8 +294,7 @@ def konfigurer(args):
     if args.bygg:
         BYGG = args.bygg
         if "_" not in BYGG:                 # kortform: bare kallenavnet
-            md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv",
-                             usecols=["building_id", "site_id"])
+            md = metadata.reset_index()
             treff = md.loc[(md["site_id"] == SITE)
                            & md["building_id"].str.endswith("_" + BYGG),
                            "building_id"].tolist()
@@ -317,12 +312,10 @@ def main():
     args = parse_args()
     # Fullt building_id gir siten selv; ellers velges site (spør om nødvendig)
     if not (args.bygg and "_" in args.bygg):
-        md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv",
-                         usecols=["site_id"])
-        args.site = velg_site(sorted(md["site_id"].dropna().unique()),
+        args.site = velg_site(sorted(metadata["site_id"].dropna().unique()),
                               args.site)
     if args.liste:
-        md = pd.read_csv(DATA_DIR / "metadata" / "metadata.csv")
+        md = metadata.reset_index()
         md = md[md["site_id"] == args.site]
         print(md[["building_id", "primaryspaceusage", "sqm"]]
               .to_string(index=False))
@@ -336,7 +329,7 @@ def main():
 
     data = {}
     for m in METER_TYPES:
-        df = load_meter(m)
+        df = last_maler(m)
         if df is None:
             continue
         data[m] = df

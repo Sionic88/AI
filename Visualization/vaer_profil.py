@@ -123,8 +123,8 @@ def main():
                tick_labels=brukbare,
                flierprops=dict(marker=".", markersize=2, alpha=0.25),
                medianprops=dict(color="crimson"))
-    ax.set_ylabel("Standardisert verdi (z)")
-    ax.set_title(f"{SITE}: værvariabler, standardisert")
+    ax.set_ylabel("Standardised value (z)")
+    ax.set_title(f"{SITE}: weather variables, standardised")
     plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
     fig.tight_layout()
     lagre(fig, "10_vaer_boksplott.png")
@@ -137,8 +137,8 @@ def main():
     ax.boxplot([t[mnd == m].to_numpy() for m in order], tick_labels=order,
                flierprops=dict(marker=".", markersize=2, alpha=0.25),
                medianprops=dict(color="crimson"))
-    ax.set_ylabel("Lufttemperatur (°C)")
-    ax.set_title(f"{SITE}: lufttemperatur per måned")
+    ax.set_ylabel("Air temperature (°C)")
+    ax.set_title(f"{SITE}: air temperature per month")
     plt.setp(ax.get_xticklabels(), rotation=90)
     fig.tight_layout()
     lagre(fig, "11_vaer_temperatur_maaned.png")

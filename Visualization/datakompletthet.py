@@ -145,12 +145,12 @@ def figur(sortert, antall):
     for xi, a in zip(x, antall):
         ax_t.text(xi, a, f"{a}", ha="center", va="bottom", fontsize=7,
                   color=TEKST)
-    ax_t.set_ylabel("Bygg med alle felt\nt.o.m. denne kolonnen")
+    ax_t.set_ylabel("Buildings with all fields\nup to this column")
     ax_t.set_ylim(0, n_bygg * 1.12)
     ax_t.grid(axis="y", color=FARGE_MANGLER, lw=0.6)
     ax_t.set_axisbelow(True)
-    ax_t.set_title(f"Datakompletthet for alle {n_bygg} bygg i BDG2: "
-                   f"felt ordnet etter byggeår, så etter flest gjenværende bygg",
+    ax_t.set_title(f"Data completeness for all {n_bygg} buildings in BDG2: "
+                   f"fields ordered by year built, then by most remaining buildings",
                    fontsize=11)
 
     # Stripediagram
@@ -158,8 +158,8 @@ def figur(sortert, antall):
     ax_m.imshow(sortert.to_numpy(int), aspect="auto", cmap=farger,
                 interpolation="nearest", vmin=0, vmax=1)
     ax_m.set_xticks(x, felt, rotation=60, ha="right")
-    ax_m.set_ylabel(f"Bygg (sortert, {n_bygg} rader)")
-    ax_m.set_yticks([0, n_bygg - 1], ["mest komplett", "minst komplett"])
+    ax_m.set_ylabel(f"Buildings (sorted, {n_bygg} rows)")
+    ax_m.set_yticks([0, n_bygg - 1], ["most complete", "least complete"])
 
     # Skille mellom metadata og målere i kolonneetikettene
     for lbl in ax_m.get_xticklabels():
@@ -167,20 +167,20 @@ def figur(sortert, antall):
             lbl.set_fontweight("bold")
 
     ax_m.legend(handles=[
-        matplotlib.patches.Patch(color=FARGE_DATA, label="har data"),
-        matplotlib.patches.Patch(color=FARGE_MANGLER, label="mangler"),
+        matplotlib.patches.Patch(color=FARGE_DATA, label="has data"),
+        matplotlib.patches.Patch(color=FARGE_MANGLER, label="missing"),
     ], loc="lower right", frameon=True, fontsize=8)
-    ax_m.text(0, -0.13, f"Fet skrift = måler (teller ved minst "
-              f"{MIN_DEKNING:.0%} timedekning). Vanlig skrift = metadata.",
+    ax_m.text(0, -0.13, f"Bold = meter (counts at least "
+              f"{MIN_DEKNING:.0%} hourly coverage). Regular = metadata.",
               transform=ax_m.transAxes, fontsize=8, color=TEKST_SEKUNDAER,
               va="top")
     fig.subplots_adjust(left=0.12, right=0.98, top=0.96, bottom=0.1)
     lagre(fig, "datakompletthet.png")
 
 
-LAND = {"Lamb": "Storbritannia", "Mouse": "Storbritannia",
-        "Robin": "Storbritannia", "Shrew": "Storbritannia",
-        "Crow": "Canada", "Moose": "Canada", "Wolf": "Irland"}  # resten: USA
+LAND = {"Lamb": "United Kingdom", "Mouse": "United Kingdom",
+        "Robin": "United Kingdom", "Shrew": "United Kingdom",
+        "Crow": "Canada", "Moose": "Canada", "Wolf": "Ireland"}  # resten: USA
 KATEGORI_FARGER = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
 FARGE_ANDRE = "#a8a79f"
 
@@ -191,11 +191,11 @@ def fig_fordeling(tab, rekkefolge, antall, md):
     land = md["site_id"].map(LAND).fillna("USA")
     topp_bruk = md["primaryspaceusage"].value_counts().index[:4].tolist()
     bruk = md["primaryspaceusage"].where(
-        md["primaryspaceusage"].isin(topp_bruk), "Andre")
+        md["primaryspaceusage"].isin(topp_bruk), "Other")
 
     paneler = [
-        (land, ["USA", "Storbritannia", "Canada", "Irland"], "land"),
-        (bruk, topp_bruk + ["Andre"], "bruk (primaryspaceusage)"),
+        (land, ["USA", "United Kingdom", "Canada", "Ireland"], "country"),
+        (bruk, topp_bruk + ["Other"], "use (primaryspaceusage)"),
     ]
     fig, axes = plt.subplots(2, 1, figsize=(12, 9), sharex=True)
     x = np.arange(len(steg))
@@ -209,28 +209,90 @@ def fig_fordeling(tab, rekkefolge, antall, md):
 
         bunn = np.zeros(len(steg))
         for k, kat in enumerate(kategorier):
-            farge = FARGE_ANDRE if kat == "Andre" else KATEGORI_FARGER[k]
+            farge = FARGE_ANDRE if kat == "Other" else KATEGORI_FARGER[k]
             ax.bar(x, t[kat], bottom=bunn, width=0.75, color=farge,
                    edgecolor="white", linewidth=1, label=kat)
             bunn += t[kat].to_numpy()
         for xi, total in zip(x, bunn):
             ax.text(xi, total, f"{int(total)}", ha="center", va="bottom",
                     fontsize=8, color=TEKST)
-        ax.set_ylabel("Bygg igjen")
+        ax.set_ylabel("Buildings remaining")
         ax.set_ylim(0, bunn.max() * 1.1)
-        ax.set_title(f"Fordeling på {tittel}", loc="left", fontsize=10)
+        ax.set_title(f"Distribution by {tittel}", loc="left", fontsize=10)
         ax.grid(axis="y", color=FARGE_MANGLER, lw=0.6)
         ax.set_axisbelow(True)
         ax.legend(loc="upper right", fontsize=8, frameon=False)
 
     axes[-1].set_xticks(x, [("+ " if i else "") + rekkefolge[i] for i in steg],
                         rotation=30, ha="right")
-    axes[-1].set_xlabel("Krav lagt til, steg for steg (hvert steg krever "
-                        "alle felt til venstre)")
-    fig.suptitle("Hvem overlever trakten? Byggene som har alle felt "
-                 "fram til hvert steg", color=TEKST, fontsize=11)
+    axes[-1].set_xlabel("Requirement added, step by step (each step requires "
+                        "all fields to the left)")
+    fig.suptitle("Who survives the funnel? Buildings with all fields "
+                 "up to each step", color=TEKST, fontsize=11)
     fig.tight_layout()
     lagre(fig, "fordeling.png")
+
+
+def fig_site_dekning(tab, rekkefolge, md):
+    """Site x felt: andel av sitens bygg som har feltet.
+
+    Viser hvilke sites som dekker hvilke aspekter. Sitene er gruppert på land
+    og sortert etter hvor mye de dekker totalt. Returnerer tabellen i prosent.
+    """
+    site = md["site_id"].reindex(tab.index)
+    andel = 100 * tab[rekkefolge].groupby(site).mean()
+    n = site.value_counts()
+    land = andel.index.map(lambda s: LAND.get(s, "USA"))
+    orden = (pd.DataFrame({"land": land, "snitt": andel.mean(axis=1).to_numpy()},
+                          index=andel.index)
+             .assign(land_nr=lambda d: d["land"].map(
+                 {"USA": 0, "Canada": 1, "United Kingdom": 2, "Ireland": 3}))
+             .sort_values(["land_nr", "snitt"], ascending=[True, False]))
+    andel = andel.loc[orden.index]
+
+    n_site, n_felt = andel.shape
+    fig, ax = plt.subplots(figsize=(13, 0.42 * n_site + 2.6))
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+        "dekning", ["#f4f3ee", "#9ec5f4", "#3987e5", "#1c5cab", "#104281"])
+    im = ax.imshow(andel.to_numpy(), aspect="auto", cmap=cmap, vmin=0,
+                   vmax=100, interpolation="nearest")
+
+    # Prosent i cellene. Tom celle = ingen bygg på siten har feltet.
+    for i in range(n_site):
+        for j in range(n_felt):
+            v = andel.iat[i, j]
+            if v > 0:
+                ax.text(j, i, f"{v:.0f}", ha="center", va="center",
+                        fontsize=6.5, color="white" if v > 55 else TEKST)
+
+    # Skillelinjer mellom land
+    grenser = np.flatnonzero(orden["land"].to_numpy()[1:]
+                             != orden["land"].to_numpy()[:-1])
+    for g in grenser:
+        ax.axhline(g + 0.5, color=TEKST, linewidth=1.2)
+
+    ax.set_xticks(range(n_felt), rekkefolge, rotation=60, ha="right")
+    for lbl in ax.get_xticklabels():
+        if lbl.get_text() in METER_TYPES:
+            lbl.set_fontweight("bold")
+    ax.set_yticks(range(n_site),
+                  [f"{s}  ({LAND.get(s, 'USA')}, n={n[s]})" for s in andel.index])
+    ax.tick_params(length=0)
+    for s in ax.spines.values():
+        s.set_visible(False)
+
+    cb = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.01)
+    cb.set_label("Share of the site's buildings with data (%)")
+    cb.outline.set_visible(False)
+    ax.set_title("Which sites cover which fields? Share of buildings per site "
+                 "with data in each field", loc="left", fontsize=11, color=TEKST)
+    ax.text(0, -0.25, f"Empty cell = no building on the site has the field. "
+            f"Bold = meter (at least {MIN_DEKNING:.0%} hourly coverage). "
+            "Columns in the same order as datakompletthet.png.",
+            transform=ax.transAxes, fontsize=8, color=TEKST_SEKUNDAER, va="top")
+    fig.subplots_adjust(left=0.2, right=0.9, top=0.94, bottom=0.2)
+    lagre(fig, "site_dekning.png")
+    return andel
 
 
 # ----------------------------------------------------------------------
@@ -275,6 +337,9 @@ def main():
 
     figur(sortert, antall)
     fig_fordeling(tab, rekkefolge, antall, md)
+    site_andel = fig_site_dekning(tab, rekkefolge, md)
+    site_andel.round(1).to_csv(OUT_DIR / "site_dekning.csv", sep=";",
+                               encoding="utf-8-sig")
     print(f"\nSkrevet til {OUT_DIR}")
 
 

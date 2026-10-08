@@ -108,8 +108,8 @@ def sektorer():
     bredde = 360 / N_SEKTORER
     sentre = np.arange(0, 360, bredde)
     if N_SEKTORER == 16:
-        navn = ["N", "NNØ", "NØ", "ØNØ", "Ø", "ØSØ", "SØ", "SSØ",
-                "S", "SSV", "SV", "VSV", "V", "VNV", "NV", "NNV"]
+        navn = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
     else:
         navn = [f"{int(s)}" for s in sentre]
     return sentre, bredde, navn
@@ -164,11 +164,11 @@ def figur_enkel(w, andel_stille):
     fig = plt.figure(figsize=(7.5, 6.5))
     ax = fig.add_subplot(111, projection="polar")
     periode = f"{w.index.min().year}-{w.index.max().year}"
-    tegn_rose(ax, tab, f"{SITE}: vindrose {periode}\n"
-                       f"(retningen vinden kommer fra, "
-                       f"{andel_stille:.1f} % stille timer utelatt)")
+    tegn_rose(ax, tab, f"{SITE}: wind rose {periode}\n"
+                       f"(direction the wind blows from, "
+                       f"{andel_stille:.1f} % calm hours excluded)")
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1.05), frameon=False,
-              title="Vindstyrke")
+              title="Wind speed")
     fig.tight_layout()
     lagre(fig, "12_vindrose_hele_perioden.png")
 
@@ -186,12 +186,12 @@ def figur_panel(w, grupper, filnavn, tittel_mal):
     for i, (navn, del_w) in enumerate(grupper, start=1):
         ax = fig.add_subplot(1, n, i, projection="polar")
         if len(del_w) < 50:
-            ax.set_title(f"{navn}\n(for få data)")
+            ax.set_title(f"{navn}\n(too little data)")
             continue
         tegn_rose(ax, krysstabell(del_w), tittel_mal.format(navn=navn))
         if i == n:
             ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1.05),
-                      frameon=False, title="Vindstyrke", fontsize=7)
+                      frameon=False, title="Wind speed", fontsize=7)
     fig.tight_layout()
     lagre(fig, filnavn)
 
@@ -217,12 +217,12 @@ def main():
     aar = [(str(a), d) for a, d in w.groupby(w.index.year)]
     figur_panel(w, aar, "13_vindrose_per_aar.png", "{navn}")
 
-    sesong_navn = {12: "Vinter", 1: "Vinter", 2: "Vinter",
-                   3: "Vår", 4: "Vår", 5: "Vår",
-                   6: "Sommer", 7: "Sommer", 8: "Sommer",
-                   9: "Høst", 10: "Høst", 11: "Høst"}
+    sesong_navn = {12: "Winter", 1: "Winter", 2: "Winter",
+                   3: "Spring", 4: "Spring", 5: "Spring",
+                   6: "Summer", 7: "Summer", 8: "Summer",
+                   9: "Autumn", 10: "Autumn", 11: "Autumn"}
     s = w.assign(sesong=[sesong_navn[m] for m in w.index.month])
-    rekkefolge = ["Vinter", "Vår", "Sommer", "Høst"]
+    rekkefolge = ["Winter", "Spring", "Summer", "Autumn"]
     sesonger = [(navn, s[s["sesong"] == navn].drop(columns="sesong"))
                 for navn in rekkefolge]
     figur_panel(w, sesonger, "14_vindrose_per_sesong.png", "{navn}")

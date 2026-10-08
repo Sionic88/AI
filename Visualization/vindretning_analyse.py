@@ -42,7 +42,7 @@ MIN_DAGER_PER_SEKTOR = 15      # sektorer med færre døgn rapporteres ikke
 MIN_TIMER_PER_BYGG = 24 * 180  # bygg med mindre data hoppes over
 TOPP_N = 6                     # antall bygg i figuren
 
-SEKTORNAVN_8 = ["N", "NØ", "Ø", "SØ", "S", "SV", "V", "NV"]
+SEKTORNAVN_8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
 plt.rcParams.update({"figure.dpi": 130, "font.size": 9})
 
@@ -213,9 +213,9 @@ def fig_datagrunnlag(n_dager, r2):
               for n in n_dager]
     ax.bar(n_dager.index, n_dager.to_numpy(), color=farger)
     ax.axhline(MIN_DAGER_PER_SEKTOR, color="crimson", ls="--", lw=1,
-               label=f"terskel {MIN_DAGER_PER_SEKTOR} døgn")
-    ax.set_ylabel("Antall døgn")
-    ax.set_title("Datagrunnlag per vindsektor")
+               label=f"threshold {MIN_DAGER_PER_SEKTOR} days")
+    ax.set_ylabel("Number of days")
+    ax.set_title("Data basis per wind sector")
     ax.legend(frameon=False, fontsize=8)
     ax.grid(axis="y", alpha=0.3)
     for i, n in enumerate(n_dager.to_numpy()):
@@ -226,9 +226,9 @@ def fig_datagrunnlag(n_dager, r2):
             edgecolor="white")
     ax.axvline(r2.median(), color="crimson", lw=1.5,
                label=f"median {r2.median():.2f}")
-    ax.set_xlabel("Modellens R2 per bygg")
-    ax.set_ylabel("Antall bygg")
-    ax.set_title("Hvor mye basismodellen forklarer")
+    ax.set_xlabel("Model R2 per building")
+    ax.set_ylabel("Number of buildings")
+    ax.set_title("How much the baseline model explains")
     ax.legend(frameon=False, fontsize=8)
     ax.grid(axis="y", alpha=0.3)
 
@@ -251,9 +251,9 @@ def fig_heatmap(avvik, spenn):
     ax.set_yticks(range(len(d)))
     ax.set_yticklabels([b.replace(SITE + "_", "") for b in d.index],
                        fontsize=6)
-    ax.set_title(f"{SITE}: merforbruk per vindretning\n"
-                 "avvik fra porteføljen (%), sortert etter utslag")
-    fig.colorbar(bilde, ax=ax, label="% av byggets snittforbruk", shrink=0.7)
+    ax.set_title(f"{SITE}: excess consumption per wind direction\n"
+                 "deviation from portfolio (%), sorted by range")
+    fig.colorbar(bilde, ax=ax, label="% of building's mean consumption", shrink=0.7)
     fig.tight_layout()
     lagre(fig, "17_retning_heatmap.png")
 
@@ -271,9 +271,9 @@ def fig_rangering(ut, topp=20):
             color="#b2182b")
     ax.set_yticks(range(len(d)))
     ax.set_yticklabels(navn, fontsize=7)
-    ax.set_xlabel("Forskjell mellom beste og verste vindretning (%)")
-    ax.set_title(f"{SITE}: kandidater for befaring\n"
-                 "verste retning i klammer")
+    ax.set_xlabel("Difference between best and worst wind direction (%)")
+    ax.set_title(f"{SITE}: candidates for inspection\n"
+                 "worst direction in brackets")
     ax.grid(axis="x", alpha=0.3)
     for i, v in enumerate(d["spenn_%"].to_numpy(dtype=float)):
         ax.text(v, i, f" {v:.1f}", va="center", fontsize=7)
@@ -396,9 +396,9 @@ def main():
             # nullringen er referansen: innenfor = mindre, utenfor = mer
             ax.plot(np.linspace(0, 2 * np.pi, 200), np.zeros(200),
                     color="black", lw=0.8)
-        fig.suptitle(f"{SITE}: merforbruk per vindretning, avvik fra "
-                     f"porteføljen (%)\nrødt = mer enn forventet, "
-                     f"blått = mindre", fontsize=10)
+        fig.suptitle(f"{SITE}: excess consumption per wind direction, deviation from "
+                     f"portfolio (%)\nred = more than expected, "
+                     f"blue = less", fontsize=10)
         fig.tight_layout(h_pad=2.5)
         lagre(fig, "15_retningsavvik_per_bygg.png")
 

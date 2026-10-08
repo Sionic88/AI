@@ -1,0 +1,41 @@
+======================================================================
+Robin_education_Lashandra
+======================================================================
+
+Metadata (kun felter med verdi):
+  building_id              Robin_education_Lashandra
+  site_id                  Robin
+  building_id_kaggle       107.0
+  site_id_kaggle           1.0
+  primaryspaceusage        Education
+  sub_primaryspaceusage    College Classroom
+  sqm                      9061.0
+  sqft                     97532.0
+  lat                      51.51878965384613
+  lng                      -0.1345562307692307
+  timezone                 Europe/London
+  electricity              Yes
+  industry                 Education
+  subindustry              College/University
+  heatingtype              Heat network
+  yearbuilt                2005.0
+  numberoffloors           10.0
+  rating                   F
+
+  Felter uten verdi (14): hotwater, chilledwater, steam, water, irrigation, solar, gas, date_opened, occupants, energystarscore, eui, site_eui, source_eui, leed_level
+
+Målerdata (rå):
+
+  electricity
+    dekning      100.00 %  (17,544 av 17,544 timer)
+    min                  0.02
+    Q1                  69.00
+    median             106.00
+    Q3                 323.00
+    maks               591.00
+    gjennomsnitt       167.11
+    std                146.03
+    skjevhet             1.01
+    sum per år      1,465,903
+    EUI                 161.8  (kWh/m2/år, ufylte hull)
+

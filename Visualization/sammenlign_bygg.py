@@ -35,13 +35,13 @@ OUT_DIR = Path("figures").resolve() / "sammenligning"
 
 # Rekkefølge fra kaldest til varmest. Fargen følger bygget i alle figurer.
 BYGG = {
-    "Crow_education_Omer":    {"sted": "Ottawa",  "klima": "kaldt innland",
+    "Crow_education_Omer":    {"sted": "Ottawa",  "klima": "cold continental",
                                "varme": "hotwater", "kjol": "chilledwater"},
-    "Lamb_education_Emery":   {"sted": "Cardiff", "klima": "mildt kystklima",
+    "Lamb_education_Emery":   {"sted": "Cardiff", "klima": "mild coastal",
                                "varme": "gas",      "kjol": None},
-    "Bull_education_Miranda": {"sted": "Austin",  "klima": "fuktig subtropisk",
+    "Bull_education_Miranda": {"sted": "Austin",  "klima": "humid subtropical",
                                "varme": "steam",    "kjol": "chilledwater"},
-    "Fox_education_Nilda":    {"sted": "Tempe",   "klima": "varm ørken",
+    "Fox_education_Nilda":    {"sted": "Tempe",   "klima": "hot desert",
                                "varme": "hotwater", "kjol": "chilledwater"},
 }
 FARGER = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]   # fast kategorisk rekkefølge
@@ -130,8 +130,8 @@ def fig_klima(temp):
         direkte_etikett(ax, siste, mnd[b][siste],
                         BYGG[b]["sted"], BYGG[b]["farge"])
     ax.axhline(0, color=TEKST_SEKUNDAER, lw=0.8)
-    ax.set_ylabel("Utetemperatur, månedssnitt (°C)")
-    ax.set_title("Klima: månedlig snittemperatur 2016-2017")
+    ax.set_ylabel("Outdoor temperature, monthly mean (°C)")
+    ax.set_title("Climate: monthly mean temperature 2016-2017")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=4,
               fontsize=8)
     ax.set_xlim(right=mnd.index[-1] + pd.Timedelta(days=75))
@@ -151,8 +151,8 @@ def fig_strom_aar(el, meta):
     for yi, b in zip(y, rekkefolge):
         ax.text(aar[b], yi, f"  {aar[b]:.0f}", va="center", fontsize=8,
                 color=TEKST)
-    ax.set_xlabel("Strøm (kWh/m² per år, snitt 2016-2017)")
-    ax.set_title("Årlig strømforbruk per kvadratmeter")
+    ax.set_xlabel("Electricity (kWh/m² per year, mean 2016-2017)")
+    ax.set_title("Annual electricity use per square metre")
     ax.grid(axis="y", visible=False)
     ax.set_xlim(right=aar.max() * 1.15)
     fig.tight_layout()
@@ -170,8 +170,8 @@ def fig_strom_maaned(el, meta):
         direkte_etikett(ax, siste, mnd[b][siste],
                         BYGG[b]["sted"], BYGG[b]["farge"])
     ax.set_ylim(bottom=0)
-    ax.set_ylabel("Strøm (kWh/m² per måned)")
-    ax.set_title("Strøm per kvadratmeter, per måned")
+    ax.set_ylabel("Electricity (kWh/m² per month)")
+    ax.set_title("Electricity per square metre, per month")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=4,
               fontsize=8)
     ax.set_xlim(right=mnd.index[-1] + pd.Timedelta(days=75))
@@ -190,16 +190,16 @@ def fig_strom_mot_temp(el, temp, meta):
         hverdag = d_el.index.dayofweek < 5
         ax.scatter(d_t.loc[m & hverdag, b], d_el.loc[m & hverdag, b], s=9,
                    color=BYGG[b]["farge"], alpha=0.55, linewidths=0,
-                   label="hverdag")
+                   label="weekday")
         ax.scatter(d_t.loc[m & ~hverdag, b], d_el.loc[m & ~hverdag, b], s=9,
                    facecolors="none", edgecolors=BYGG[b]["farge"],
-                   alpha=0.6, linewidths=0.7, label="helg")
+                   alpha=0.6, linewidths=0.7, label="weekend")
         ax.set_title(f"{navn(b)}\n{BYGG[b]['klima']}", fontsize=9)
-        ax.set_xlabel("Utetemperatur, døgnsnitt (°C)")
-    axes[0].set_ylabel("Strøm (Wh/m² per døgn)")
+        ax.set_xlabel("Outdoor temperature, daily mean (°C)")
+    axes[0].set_ylabel("Electricity (Wh/m² per day)")
     axes[0].set_ylim(bottom=0)
     axes[-1].legend(loc="upper right", fontsize=8, markerscale=1.5)
-    fig.suptitle("Strøm mot utetemperatur, ett punkt per døgn",
+    fig.suptitle("Electricity vs outdoor temperature, one point per day",
                  color=TEKST, fontsize=11)
     fig.tight_layout()
     lagre(fig, "04_strom_mot_temperatur.png")
@@ -210,19 +210,19 @@ def fig_doegnprofil(el, meta):
     per_m2 = el.div(meta["sqm"]) * 1000                                # Wh/m2
     hverdag = per_m2.index.dayofweek < 5
     fig, axes = plt.subplots(1, 2, figsize=(11, 4), sharey=True)
-    for ax, (maske, tittel) in zip(axes, [(hverdag, "Hverdag"),
-                                          (~hverdag, "Helg")]):
+    for ax, (maske, tittel) in zip(axes, [(hverdag, "Weekday"),
+                                          (~hverdag, "Weekend")]):
         prof = per_m2[maske].groupby(per_m2[maske].index.hour).mean()
         for b in BYGG:
             ax.plot(prof.index, prof[b], color=BYGG[b]["farge"],
                     label=navn(b))
         ax.set_title(tittel)
-        ax.set_xlabel("Time på døgnet")
+        ax.set_xlabel("Hour of day")
         ax.set_xticks(range(0, 24, 3))
-    axes[0].set_ylabel("Strøm (Wh/m² per time)")
+    axes[0].set_ylabel("Electricity (Wh/m² per hour)")
     axes[0].set_ylim(bottom=0)
     axes[0].legend(loc="upper left", fontsize=8)
-    fig.suptitle("Døgnprofil for strøm, snitt over 2016-2017",
+    fig.suptitle("Daily electricity profile, mean over 2016-2017",
                  color=TEKST, fontsize=11)
     fig.tight_layout()
     lagre(fig, "05_strom_doegnprofil.png")
@@ -235,8 +235,8 @@ def fig_termisk_form(varme, kjol):
     sammenlignes: hvilke måneder bygget bruker varme og kjøling.
     """
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.2), sharey=True)
-    for ax, (data, tittel, nokkel) in zip(axes, [(varme, "Varme", "varme"),
-                                                 (kjol, "Kjøling", "kjol")]):
+    for ax, (data, tittel, nokkel) in zip(axes, [(varme, "Heating", "varme"),
+                                                 (kjol, "Cooling", "kjol")]):
         for b in BYGG:
             if b not in data:
                 continue
@@ -247,20 +247,20 @@ def fig_termisk_form(varme, kjol):
                     marker="o", ms=4, label=f"{navn(b)}: {BYGG[b][nokkel]}")
         mangler = [BYGG[b]["sted"] for b in BYGG if b not in data]
         if mangler:
-            ax.text(0.99, 0.97, "Ingen måler: " + ", ".join(mangler),
+            ax.text(0.99, 0.97, "No meter: " + ", ".join(mangler),
                     transform=ax.transAxes, ha="right", va="top",
                     fontsize=8, color=TEKST_SEKUNDAER)
         ax.set_title(tittel)
         ax.set_xticks(range(1, 13),
                       ["J", "F", "M", "A", "M", "J",
                        "J", "A", "S", "O", "N", "D"])
-        ax.set_xlabel("Måned")
+        ax.set_xlabel("Month")
         ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=2,
                   fontsize=7.5)
-    axes[0].set_ylabel("Andel av byggets årsforbruk (%)")
+    axes[0].set_ylabel("Share of building's annual use (%)")
     axes[0].set_ylim(bottom=0)
-    fig.suptitle("Når på året brukes varme og kjøling? "
-                 "(form, ikke nivå: enhetene er ulike mellom sites)",
+    fig.suptitle("When in the year are heating and cooling used? "
+                 "(shape, not level: units differ between sites)",
                  color=TEKST, fontsize=11)
     fig.tight_layout()
     lagre(fig, "06_varme_kjoling_sesong.png")

@@ -139,8 +139,8 @@ def fig_per_meter_type(long_df, filnavn):
 
     fig, ax = plt.subplots(figsize=(1.6 * len(groups) + 2, 4.5))
     boxplot(ax, groups, labels)
-    ax.set_ylabel("Timesverdi (kWh, liter for vann/vanning)")
-    ax.set_title(f"{NAVN}: fordeling per målertype")
+    ax.set_ylabel("Hourly value (kWh, litres for water/irrigation)")
+    ax.set_title(f"{NAVN}: distribution per meter type")
     fig.tight_layout()
     lagre(fig, filnavn)
 
@@ -152,8 +152,8 @@ def fig_per_building(elec, filnavn, top=25):
 
     fig, ax = plt.subplots(figsize=(max(8, 0.45 * len(cols)), 5))
     boxplot(ax, groups, labels)
-    ax.set_ylabel("Elektrisitet (kWh/time)")
-    ax.set_title(f"{NAVN}: elektrisitet per bygg")
+    ax.set_ylabel("Electricity (kWh/hour)")
+    ax.set_title(f"{NAVN}: electricity per building")
     plt.setp(ax.get_xticklabels(), rotation=90)
     fig.tight_layout()
     lagre(fig, filnavn)
@@ -167,8 +167,8 @@ def fig_per_month(elec, filnavn):
 
     fig, ax = plt.subplots(figsize=(12, 4.5))
     boxplot(ax, groups, order)
-    ax.set_ylabel("Elektrisitet (kWh/time)")
-    ax.set_title(f"{NAVN}: elektrisitet per måned")
+    ax.set_ylabel("Electricity (kWh/hour)")
+    ax.set_title(f"{NAVN}: electricity per month")
     plt.setp(ax.get_xticklabels(), rotation=90)
     fig.tight_layout()
     lagre(fig, filnavn)
@@ -180,14 +180,14 @@ def fig_daily_profile(elec, filnavn):
     s["weekend"] = s["timestamp"].dt.dayofweek >= 5
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 4.5), sharey=True)
-    for ax, (is_we, tittel) in zip(axes, [(False, "Ukedag"), (True, "Helg")]):
+    for ax, (is_we, tittel) in zip(axes, [(False, "Weekday"), (True, "Weekend")]):
         sub = s[s["weekend"] == is_we]
         groups = [sub.loc[sub["hour"] == h, "value"].dropna().to_numpy()
                   for h in range(24)]
         boxplot(ax, groups, [str(h) for h in range(24)])
         ax.set_title(f"{NAVN}: {tittel}")
-        ax.set_xlabel("Time på døgnet")
-    axes[0].set_ylabel("Elektrisitet (kWh/time)")
+        ax.set_xlabel("Hour of day")
+    axes[0].set_ylabel("Electricity (kWh/hour)")
     fig.tight_layout()
     lagre(fig, filnavn)
 
@@ -214,8 +214,8 @@ def fig_normalised(elec, meta, filnavn):
 
     fig, ax = plt.subplots(figsize=(max(7, 1.5 * len(order)), 4.5))
     boxplot(ax, groups, order)
-    ax.set_ylabel("Elektrisitet (kWh/time/m2)")
-    ax.set_title(f"{NAVN}: arealnormalisert elektrisitet")
+    ax.set_ylabel("Electricity (kWh/hour/m2)")
+    ax.set_title(f"{NAVN}: area-normalised electricity")
     plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
     fig.tight_layout()
     lagre(fig, filnavn)
@@ -225,17 +225,17 @@ def fig_raw_vs_log(elec, filnavn):
     v = elec.stack(future_stack=True).dropna()
     v = v[v > 0].to_numpy()
     fig, axes = plt.subplots(1, 2, figsize=(9, 4.5))
-    axes[0].boxplot([v], tick_labels=["rå"],
+    axes[0].boxplot([v], tick_labels=["raw"],
                     flierprops=dict(marker=".", markersize=2, alpha=0.2),
                     medianprops=dict(color="crimson"))
-    axes[0].set_title("Lineær akse")
-    axes[0].set_ylabel("kWh/time")
+    axes[0].set_title("Linear axis")
+    axes[0].set_ylabel("kWh/hour")
     axes[1].boxplot([np.log1p(v)], tick_labels=["log1p"],
                     flierprops=dict(marker=".", markersize=2, alpha=0.2),
                     medianprops=dict(color="crimson"))
-    axes[1].set_title("Etter log(1+x)")
-    axes[1].set_ylabel("log(1 + kWh/time)")
-    fig.suptitle(f"{NAVN}: effekt av log-transformasjon på skjevhet")
+    axes[1].set_title("After log(1+x)")
+    axes[1].set_ylabel("log(1 + kWh/hour)")
+    fig.suptitle(f"{NAVN}: effect of log transform on skewness")
     fig.tight_layout()
     lagre(fig, filnavn)
 

@@ -1,4 +1,4 @@
-import AI.Data_handeling.Pandas_data as pdd
+import Pandas_data as pdd
 import pandas as pd
 
 

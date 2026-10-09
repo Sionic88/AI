@@ -103,4 +103,10 @@ def site_statistics(site_name, show=True):
 
 
 if __name__ == "__main__":
-    site_statistics("Rat", show=True)
+    #site_statistics("Rat", show=True)
+
+    #site_statistics("Robin", show=True)
+
+    #site_statistics("Bull", show=True)
+
+    site_statistics("Hog", show=True)

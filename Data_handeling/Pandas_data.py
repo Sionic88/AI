@@ -12,6 +12,9 @@ weather_raw = pd.read_csv(
     DATA_DIR / "weather" / "weather.csv"
 )
 
+electricity_clean_2026 = pd.read_csv(
+    BASE_DIR / "Cleaned_data" / "electricity_2016_cleaned.csv"
+)
 
 metadata_columns = [
     "building_id",
@@ -48,6 +51,7 @@ metadata = metadata[metadata["sqm"] > 0]
 
 weather["timestamp"] = pd.to_datetime(weather["timestamp"])
 
+electricity_clean_2026["timestamp"] = pd.to_datetime(electricity_clean_2026["timestamp"])
 
 meter_path = DATA_DIR / "meters" / "raw"
 
@@ -69,6 +73,3 @@ solar["timestamp"]        = pd.to_datetime(solar["timestamp"])
 steam["timestamp"]        = pd.to_datetime(steam["timestamp"])
 water["timestamp"]        = pd.to_datetime(water["timestamp"])
 
-
-print(metadata_raw.columns.tolist())
-print(metadata_raw.head())

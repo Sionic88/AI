@@ -1,11 +1,15 @@
 import pandas as pd
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "building-data-genome-project-2-official" / "data"
 
 metadata_raw = pd.read_csv(
-    "AI/building-data-genome-project-2-official/data/metadata/metadata.csv"
+    DATA_DIR / "metadata" / "metadata.csv"
 )
 
 weather_raw = pd.read_csv(
-    "AI/building-data-genome-project-2-official/data/weather/weather.csv"
+    DATA_DIR / "weather" / "weather.csv"
 )
 
 
@@ -40,20 +44,21 @@ weather = weather_raw[weather_columns].copy()
 
 metadata = metadata.set_index("building_id")
 metadata = metadata.dropna(subset=["sqm"])
+metadata = metadata[metadata["sqm"] > 0]
 
 weather["timestamp"] = pd.to_datetime(weather["timestamp"])
 
 
-meter_path = "AI/building-data-genome-project-2-official/data/meters/raw/"
+meter_path = DATA_DIR / "meters" / "raw"
 
-electricity  = pd.read_csv(meter_path + "electricity.csv")
-chilledwater = pd.read_csv(meter_path + "chilledwater.csv")
-gas          = pd.read_csv(meter_path + "gas.csv")
-hotwater     = pd.read_csv(meter_path + "hotwater.csv")
-irrigation   = pd.read_csv(meter_path + "irrigation.csv")
-solar        = pd.read_csv(meter_path + "solar.csv")
-steam        = pd.read_csv(meter_path + "steam.csv")
-water        = pd.read_csv(meter_path + "water.csv")
+electricity  = pd.read_csv(meter_path / "electricity.csv")
+chilledwater = pd.read_csv(meter_path / "chilledwater.csv")
+gas          = pd.read_csv(meter_path / "gas.csv")
+hotwater     = pd.read_csv(meter_path / "hotwater.csv")
+irrigation   = pd.read_csv(meter_path / "irrigation.csv")
+solar        = pd.read_csv(meter_path / "solar.csv")
+steam        = pd.read_csv(meter_path / "steam.csv")
+water        = pd.read_csv(meter_path / "water.csv")
 
 electricity["timestamp"]  = pd.to_datetime(electricity["timestamp"])
 chilledwater["timestamp"] = pd.to_datetime(chilledwater["timestamp"])
@@ -64,3 +69,6 @@ solar["timestamp"]        = pd.to_datetime(solar["timestamp"])
 steam["timestamp"]        = pd.to_datetime(steam["timestamp"])
 water["timestamp"]        = pd.to_datetime(water["timestamp"])
 
+
+print(metadata_raw.columns.tolist())
+print(metadata_raw.head())
